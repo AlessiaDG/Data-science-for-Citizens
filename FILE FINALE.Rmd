@@ -1,0 +1,454 @@
+Carichiamo tutte le librerie che ci serviranno nel corso dell'analisi.
+```{r,warning=FALSE,message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(summarytools)
+library(psych)
+library(ggplot2)
+install.packages("ggcorrplot")
+library(ggcorrplot)
+```
+
+Nell'analisi per Data Science for citizens, l'obiettivo è stato quello di analizzare un dataset su Instagram. I dataset sono stati trovati sul sito https://www.kaggle.com/
+
+Prima di iniziare a lavorare, bisogna settare la working directory, cioè la cartella del computer in cui lavoreremo.Ognuno deve mettere la propria, scrivendo il "percorso" in cui si trovano i file excel che poi vogliamo caricare.
+```{r}
+setwd("D:/SCUOLA/Milano Data Science/Progetto Liceo")
+```
+*IL DATASET*
+
+Carichiamo il primo dataset: contiene 200 osservazioni di 10 variabili. I seguenti comandi servono a leggere un file excel e assegnare, dandogli un nome: in questo modo verrà salvato nell'environment.
+```{r}
+read.csv("/SCUOLA/Milano Data Science/Progetto Liceo/Primo_dataset.csv")
+dati <- read.csv("/SCUOLA/Milano Data Science/Progetto Liceo/Primo_dataset.csv")
+```
+Guardiamo il dataset.
+```{r}
+View(dati)
+head(dati)
+colnames(dati)
+rownames(dati)
+colnames(dati)[3]
+n_dati<-length(rownames(dati))
+n_dati
+```
+Carichiamo il secondo dataset: contiene 1000 osservazioni di 8 variabili.
+```{r}
+dati2 <- read.csv("/SCUOLA/Milano Data Science/Progetto Liceo/Secondo_dataset.csv")
+View(dati2)
+head(dati2)
+colnames(dati2)
+rownames(dati2)
+n_dati2<-length(rownames(dati2))
+n_dati2
+```
+Per poter unire i due dataset abbiamo bisogno di una variabile comune: noi la abbiamo ma si chiama in modo diverso nei due dataset: assegnamole lo stesso nome!
+```{r}
+dati2$channel_info <- dati2$Influencer.insta.name
+```
+Facciamo un left join:  prendiamo tutto il dataset di sinistra e aggiungiamo le informazioni che possiamo ottenere dal dataset di destra.
+
+```{r}
+dataset <- left_join(dati, dati2, by = "channel_info")
+write.csv(dataset, "dataset_csv")
+str(dataset)
+View(dataset)
+```
+Sistemiamo il dataset: togliamo le variabili comuni e rinominiamo più comodamente alcune delle colonne.
+```{r}
+dataset<- dataset[-c(11),]
+dataset <- dataset[-c(101:201),]
+dataset <- dataset[,-c(11)]
+dataset <- dataset[,-c(13:14)]
+dataset <- dataset[,-c(14:15)]
+dataset <- dataset[, -c(11)]
+n_dataset <-length(rownames(dataset))
+
+dataset <- dataset %>% 
+  rename(
+    id_instagram = channel_info,
+    categories = category_1,
+    audience_country = Audience.country.mostly.)
+dataset
+categories2<-unique(dataset$categories)
+categories2
+```
+Analizzando la variabili delle categorie, vediamo che alcuni valori sono nulli: poichè possiamo facilmente trovare queste informazioni, scarichiamo il dataset e completiamolo.
+```{r}
+sum(is.na(dataset$categories))
+
+dataset2 <- read.csv("/SCUOLA/Milano Data Science/Progetto Liceo/Dataset2.csv", sep = ";")
+data
+sum(is.na(dataset2$categories))
+```
+
+*ANALISI UNIVARIATA*
+
+Nell'analisi univariata si guardano le singole variabili indipendentemente dalle altre. Bisogna differenziare tra variabile numerica e variabile categorica.
+```{r}
+is.numeric(dataset2$influence_score)
+is.numeric(dataset2$posts)
+is.numeric(dataset2$followers)
+is.numeric(dataset2$avg_likes)
+is.numeric(dataset2$X60_day_eng_rate)
+is.numeric(dataset2$new_post_avg_like)
+is.numeric(dataset2$total_likes)
+is.character(dataset2$id_instagram)
+is.character(dataset2$country)
+is.character(dataset2$instagram.name)
+is.character(dataset2$categories)
+is.character(dataset2$audience_country)
+```
+*Variabile numerica*
+
+Analisi degli indici di posizione: media, mediana, moda, min, max, var, sd per ogni singola variabile.
+```{r}
+mean(dataset2$influence_score)
+mean_influence_score <- sum(dataset2$influence_score)/n_dataset
+median(dataset2$influence_score)
+tabulate(dataset2$influence_score)
+
+mode <- function(x) {
+  u <- unique(x)
+  tab <- tabulate(match(x, u))
+  u[tab == max(tab)]
+}
+y <- unique(dataset2$influence_score)
+tab <- tabulate(match(dataset2$influence_score, y))
+y[tab == max(tab)]
+mode(dataset2$influence_score)
+max(table(dataset2$influence_score))
+var(dataset2$influence_score)
+#cor(dataset2$influence_score)
+sd(dataset2$influence_score)
+```
+E' anche possibile fare direttamente l'analisi descrittiva di tutto il dataset.
+```{r}
+descr(dataset2)
+```
+oppure di una variabile numerica in base ad una categorica.
+```{r}
+describeBy(dataset2$followers, dataset$categories)
+```
+Con il comando summary si ottengono direttamente tutte le informazioni per ogni singola variabile (si può anche usare per le variabili categoriche).
+```{r}
+summary(dataset2$rank)
+summary(dataset2$id_instagram)
+summary(dataset2$influence_score)
+summary(dataset2$posts)
+summary(dataset2$followers)
+summary(dataset2$avg_likes)
+summary(dataset2$X60_day_eng_rate)
+summary(dataset2$new_post_avg_like)
+summary(dataset2$total_likes)
+summary(dataset2$country)
+summary(dataset2$categories)
+summary(dataset2$audience_country)
+summary(dataset2)
+```
+**Analisi grafica**
+
+Per vedere meglio la distribuzione delle variabili utilizziamo dei grafici: i boxplots e gli istogrammi. Introduciamo ggplot, un metodo più veloce per fare differenti grafici.
+*1. INFLUNCE SCORE*
+Facciamo il boxplot e cerchiamo di capire chi sono gli outlier. Dopo facciamo l'istogramma che ci permette di capire se la distribuzione potrebbe essere normale.
+```{r}
+par(mfrow = c(2,1))
+#1.INFLUENCE SCORE
+boxplot(dataset2$influence_score)
+boxplot(dataset2$influence_score, main = "Score degli influencers", col = "blue")
+outliers_influence_score <- boxplot.stats(dataset2$influence_score)$out
+persone_IS <- dataset2[dataset2$influence_score %in% outliers_influence_score, ]$id_instagram
+persone_IS
+
+ggplot(dataset, aes(y = influence_score)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "skyblue3") +
+  labs(title = "Boxplot di influence_score", y = "Influence_score")
+
+hist(dataset2$followers, breaks = 6, freq = NULL)
+
+ggplot(dataset, aes(x = influence_score)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2"
+                 fill = "skyblue3") +
+  scale_x_continuous(name = "Influence_score",
+                     breaks = seq(0, 100, 25),
+                     limits=c(0, 100)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma di influence_score")
+```
+*2.POST*
+```{r}
+boxplot(dataset2$posts)
+outliers_posts <-boxplot.stats(dataset2$posts)$out
+persone_P <- dataset2[dataset2$posts %in% outliers_posts, ]$id_instagram
+persone_P
+
+ggplot(dataset, aes(y = posts)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "deeppink1") +
+  labs(title = "Boxplot di posts", y = "Numero dei posts")
+
+hist(dataset2$posts, breaks = 6)
+
+ggplot(dataset, aes(x = posts)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2"
+                 fill = "deeppink1") +
+  scale_x_continuous(name = "Numero dei posts",
+                     breaks = seq(0, 20, 1),
+                     limits=c(0, 20)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sul numero dei posts")
+```
+*3. FOLLOWERS*
+```{r}
+boxplot(dataset2$followers)
+outliers_followers <-boxplot.stats(dataset2$followers)$out
+persone_F <- dataset2[dataset2$followers %in% outliers_followers, ]$id_instagram
+persone_F
+
+ggplot(dataset, aes(y = followers)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "greenyellow") +
+  labs(title = "Boxplot di followers", y = "Numero dei followers")
+
+hist(dataset2$followers)
+
+ggplot(dataset, aes(x = followers)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2"
+                 fill = "greenyellow") +
+  scale_x_continuous(name = "Numero dei followers",
+                     breaks = seq(0, 500, 25),
+                     limits=c(0, 500)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sul numero dei followers")
+```
+*4. AVG LIKES*
+```{r}
+boxplot(dataset2$avg_likes)
+outliers_avg_likes <-boxplot.stats(dataset2$avg_likes)$out
+persone_AL <- dataset2[dataset2$avg_likes %in% outliers_avg_likes, ]$id_instagram
+persone_AL
+
+ggplot(dataset, aes(y = avg_likes)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "coral1") +
+  labs(title = "Boxplot di average likes", y = "Media dei likes")
+
+hist(dataset2$avg_likes) 
+
+ggplot(dataset, aes(x = avg_likes)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2"
+                 fill = "coral1") +
+  scale_x_continuous(name = "Media dei likes",
+                     breaks = seq(0, 1000, 100),
+                     limits=c(0, 1000)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sulla media dei likes")
+```
+*5. ENG RATE*
+```{r}
+boxplot(dataset2$X60_day_eng_rate)
+outliers_eng_rate <-boxplot.stats(dataset2$X60_day_eng_rate)$out
+persone_ER <- dataset2[dataset2$X60_day_eng_rate %in% outliers_eng_rate, ]$id_instagram
+persone_ER
+
+ggplot(dataset, aes(y = X60_day_eng_rate)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "cyan") +
+  labs(title = "Boxplot dell'engagement rate", y = "Engagement rate")
+
+hist(dataset2$X60_day_eng_rate) 
+
+ggplot(dataset, aes(x = X60_day_eng_rate)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2",
+                 fill = "cyan") +
+  scale_x_continuous(name = "Engagement rate",
+                     breaks = seq(0, 100, 25),
+                     limits=c(0, 100)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sull'engagement rate")
+```
+*6. NEW POST AVERAGE LIKES*
+```{r}
+boxplot(dataset2$new_post_avg_like)
+outliers_new_al <-boxplot.stats(dataset2$new_post_avg_like)$out
+persone_NAL <- dataset2[dataset2$new_post_avg_like %in% outliers_new_al, ]$id_instagram
+persone_NAL
+
+ggplot(dataset, aes(y = new_post_avg_like)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "grey81") +
+  labs(title = "Boxplot sulla media dei likes ai posts", y = "Average likes")
+
+hist(dataset2$new_post_avg_like) 
+
+ggplot(dataset, aes(x = new_post_avg_like)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "goldenrod2",
+                 fill = "grey81") +
+  scale_x_continuous(name = "Average likes",
+                     breaks = seq(0, 100, 25),
+                     limits=c(0, 100)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sulla media dei likes ai posts")
+```
+*7. TOTAL LIKES*
+```{r}
+boxplot(dataset2$total_likes)
+outliers_total_likes <-boxplot.stats(dataset2$total_likes)$out
+persone_TL <- dataset2[dataset2$total_likes %in% outliers_total_likes, ]$id_instagram
+persone_TL
+
+ggplot(dataset, aes(y = total_likes)) +
+  geom_boxplot()+
+  geom_boxplot(fill = "orchid4") +
+  labs(title = "Boxplot sui total likes", y = "Total likes")
+
+
+hist(dataset2$total_likes)
+
+ggplot(dataset, aes(x = total_likes)) +
+  geom_histogram(aes(y = ..count..), binwidth = 5,
+                 #colour = "orchid4",
+                 fill = "orchid4") +
+  scale_x_continuous(name = "Total likes",
+                     breaks = seq(0, 100, 25),
+                     limits=c(0, 100)) +
+  scale_y_continuous(name = "Count") +
+  ggtitle("Istogramma sui total likes")
+```
+Vediamo ora l'analisi univariata per le variabili categoriche. Facciamo dei bar chart.
+
+*VARIABILE COUNTRY*
+```{r}
+plot(table(dataset2$country))
+#ggplot(dataset, aes(x=id_instagram, y=categories)) +
+#geom_histogram(bindwidth = 0.5, colour = "red")
+
+ggplot(dataset2, aes(x = country)) + 
+  geom_bar()    
+
+ggplot(dataset2, aes(x= country)) +
+  geom_bar()+
+  geom_text(stat ='count', aes(label=..count..), vjust=-0.3)
+```
+Se volessimo riordinare le barre dalla più alta alla più bassa, ci conviene creare un nuovo dataset:utilizziamo di nuovo dplyr.
+```{r}
+dataset_count <- dataset2 %>% 
+  group_by(country) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+dataset_count
+is.data.frame(dataset_count)
+```
+Creando il dataset, facciamo di nuovo il grafico aggiungendo reorder.
+```{r}
+ggplot(dataset_count, aes(x =reorder(country, -count), y=count, fill=country)) +
+  geom_bar(stat='identity', aes=(fill=count)) +
+  geom_text(aes(label= count), vjust=-0.25)+
+  labs(title = "Numero di influencers per nazione", 
+     x = "Nazione",
+     y = "Numero di influencers")+
+  theme(axis.text.x = element_text(angle = 90))
+  #coord_flip()
+```
+*VARIABILE AUDIENCE_COUNTRY*
+```{r}
+ggplot(dataset2, aes(x= audience_country)) +
+  geom_bar()+
+  geom_text(stat ='count', aes(label=..count..), vjust=-0.3)
+
+dataset_count3 <- dataset2 %>% 
+  group_by(audience_country) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+dataset_count3
+is.data.frame(dataset_count3)
+
+ggplot(subset(dataset_count3, !is.na(audience_country)), aes(x =reorder(audience_country, -count), y=count, fill=audience_country)) +
+  geom_bar(stat='identity', aes=(fill=count)) +
+  geom_text(aes(label= count), vjust=-0.25)+
+  labs(title = "A quali nazioni appartengono le communities degli influencers?", 
+     x = "Nazione",
+     y = "Numero di communities")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+*VARIABILE CATEGORIES*
+```{r}
+ggplot(dataset2, aes(x=categories)) +
+  geom_bar()+
+  geom_text(stat ='count', aes(label=..count..), vjust=-0.3)
+
+library(dplyr)
+dataset_count2 <- dataset2 %>% 
+  group_by(categories) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+ggplot(dataset_count2, aes(x =reorder(categories, -count), y=count, fill=categories)) +
+  geom_bar(stat='identity', aes=(fill=count)) +
+  geom_text(aes(label= count), vjust=-0.10)+
+  labs(title = "Numero di influencers per categoria", 
+       x = "Categoria",
+       y = "Numero di influencers")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+ *ANALISI BIVARIATA* :studio congiunto di due variabili per valutare l'esistenza di un eventuale legame fra le stesse.
+Facciamo la matrice di correlazione. Dobbiamo usare spearman perchè le nostre variabili non sono normali!
+#facendo i plot possiamo già vedere se le variabili sono in qualche modo correlate oppure no
+```{r}
+plot(dataset2$followers, dataset2$avg_likes)
+plot(dataset2$followers, dataset2$new_post_avg_like)
+
+#ci aspettiamo che tra i total likes e il numero dei followers ci sia una correlazione positiva
+par(mfrow=c(1,2))
+plot(dataset2$followers, dataset2$total_likes)
+#gli outlier non ci permettono di vederla ma se li togliamo, otteniamo proprio una relazione lineare crescente
+yout=dataset2$total_likes>60
+plot(dataset2$followers[!yout],dataset2$total_likes[!yout])
+#abline(lm(dataset2$total_likes[!yout]~dataset2$followers[!yout]), col="red")
+text(dataset2$followers, dataset2$total_likes, labels=dataset2$id_instagram)
+
+plot(dataset$followers, dataset$influence_score)
+yout=dataset$influence_score<65 # some logical rule for identifying an outlier
+
+plot(dataset$followers[!yout],dataset$influence_score[!yout])
+abline(lm(dataset$influence_score[!yout]~dataset$followers[!yout]), col="red")
+
+dataset.cor = cor(dataset2[,c(3:9)], method = c("spearman"))
+dataset.cor
+#ggcorrplot(dataset.cor, type = "lower", hc.order = TRUE, ggtheme = ggplot2::theme_gray, colors = c("#6D9EC1", "white", "#E46726"))
+
+#ggcorrplot(dataset.cor)
+
+#corrplot(dataset.cor)
+
+#ggcorrplot(dataset.cor, method = "circle")
+
+#ggcorrplot(dataset.cor, hc.order = FALSE, type = "lower",lab = TRUE)
+
+corrplot(dataset.cor, method="pie")
+
+
+#Influence score: quanto quell'account è influente sulla base del numero dei followers, 
+#sulla base del loro impatto sulle persone (quanto esse riescano a farsi influenzare da quella persona), 
+#sulla base di quanto curano l'account. Il massimo può essere 100, serve alle agenzie per capire da chi far sponsorizzare un loro prodotto
+#L'influence sore e il numero dei followers, dei post e dei total likes sono correlati positivamente: coerente! 
+#E' correlata negativamente con eng rate: è correlato positivamente con i followers quindi negativamente con eng rate (perchè followers è al denominatore nell'engagement rate
+
+#60 day engagement rate: media tra i likes, condivisioni, commenti, in generale interazioni. Viene misurata in percentuale ER=(like+commenti)/followers x100. Correlata negativamente con tutto: con followers coerente perchè è  al denominatore, con likes non coerente ma non abbiamo la variabile commenti.
+
+#Posts: correlati molto negativamente con eng rate
+
+#Followers: correlato negativamente con eng rate OK e con new_post_avg like: all'inizio del boom di instagram è possibile che le communities fossero più attive nel supportare l'account che seguono
+#E' correlato positivamente con total likes: instagram funziona!
+
+```
+#FINE ANALISI
