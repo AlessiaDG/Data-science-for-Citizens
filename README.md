@@ -14,3 +14,5 @@ Il mio team ha condotto un'analisi su Instagram, con l'intento di scoprire chi f
 
 * 22 marzo: presentazione 
 * 13-14 aprile: presentazione
+
+Potete trovare la nostra presentazione al profilo instagram: https://www.instagram.com/pcto_respo/
