@@ -1,7 +1,7 @@
 # Data-science-for-Citizens
-Master DSE: Data Science for Citizens è un progetto che vede l'analisi di un dataset insegnata ai ragazzi del liceo Respighi di Piacenza.
+Data Science for Citizens è un progetto che vede l'analisi di un dataset insegnata ai ragazzi del liceo Respighi di Piacenza.
 
-Attraverso sei incontri, in presenza ed online, si è svolta la seconda edizione di Data Science for Citizens, collaborazione tra il Master Data Science and Economics e il
+Attraverso sei incontri, in presenza ed online, si è svolta la seconda edizione di Data Science for Citizens, collaborazione tra la magistrale Data Science and Economics e il
 liceo Respighi di Piacenza.
 
 Il mio team ha condotto un'analisi su Instagram, con l'intento di scoprire chi fossero gli influencers.
